@@ -23,15 +23,12 @@ use pane_extension::alloc::{
     format,
     string::{String, ToString},
     vec,
-    vec::Vec,
 };
 use pane_extension::clipboard_history::{self as history, Capture, Entry, HistoryStatus};
-use pane_extension::feedback::{Toast, ToastStyle, show_hud, show_toast};
+use pane_extension::feedback::{HudStyle, Toast, show_hud, show_toast};
 use pane_extension::system::{self, Clip, SystemError};
 use pane_extension::window::{PopToRootType, close};
-use pane_extension::{
-    Action, Command, CustomView, FieldValue, FormError, Item, List, NoCustomView,
-};
+use pane_extension::{Action, Command, Item, List, NoDesignedView};
 
 struct ClipboardHistory;
 pane_extension::export!(ClipboardHistory);
@@ -144,7 +141,7 @@ async fn paste(id: String, text: String) -> Result<(), String> {
         Err(SystemError::NotAvailable(_)) => {
             history::copy(&id)?;
             close(false, PopToRootType::Default);
-            show_hud(PASTE_FALLBACK, ToastStyle::Success);
+            show_hud(PASTE_FALLBACK, HudStyle::Success);
             Ok(())
         }
         Err(SystemError::Failed(why)) => Err(why),
@@ -156,7 +153,7 @@ async fn paste(id: String, text: String) -> Result<(), String> {
 async fn copy(id: String) -> Result<(), String> {
     history::copy(&id)?;
     close(false, PopToRootType::Default);
-    show_hud("Copied to Clipboard", ToastStyle::Success);
+    show_hud("Copied to Clipboard", HudStyle::Success);
     Ok(())
 }
 
@@ -190,7 +187,7 @@ async fn act(item_id: String) -> Result<(), String> {
 }
 
 impl Command for ClipboardHistory {
-    type CustomView = NoCustomView;
+    type DesignedView = NoDesignedView;
 
     async fn render() -> Result<List, String> {
         let status = history::status()?;
@@ -204,16 +201,5 @@ impl Command for ClipboardHistory {
     /// drawn before, whose item is gone now.
     async fn run_search_result(id: String) -> Result<(), String> {
         act(id).await
-    }
-
-    async fn submit_form(item_id: String, _values: Vec<FieldValue>) -> Result<String, FormError> {
-        Err(FormError {
-            field: None,
-            message: format!("unknown form: {item_id}"),
-        })
-    }
-
-    async fn open_view(item_id: String) -> Result<CustomView, String> {
-        Err(format!("unknown view: {item_id}"))
     }
 }
